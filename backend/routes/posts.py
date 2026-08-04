@@ -97,6 +97,32 @@ async def create_post(
     return _post_dict(dict(row))
 
 
+@router.get("/posts/{post_id}")
+def get_post(post_id: int, user: CurrentUser) -> dict:
+    with get_db() as conn:
+        row = conn.execute(
+            """
+            SELECT p.*, u.display_name, u.username FROM posts p
+            JOIN users u ON u.id = p.user_id WHERE p.id = ?
+            """,
+            (post_id,),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+        d = dict(row)
+        like_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM post_likes WHERE post_id = ?", (post_id,)
+        ).fetchone()["c"]
+        liked = conn.execute(
+            "SELECT 1 FROM post_likes WHERE post_id = ? AND user_id = ?",
+            (post_id, user["id"]),
+        ).fetchone() is not None
+        comment_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM post_comments WHERE post_id = ?", (post_id,)
+        ).fetchone()["c"]
+        return _post_dict(d, liked=liked, like_count=like_count, comment_count=comment_count)
+
+
 @router.post("/posts/{post_id}/like")
 def toggle_like(post_id: int, user: CurrentUser) -> dict:
     with get_db() as conn:

@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/comment.dart';
 import '../models/message.dart';
 import '../models/post.dart';
 import '../models/profile.dart';
@@ -139,14 +140,47 @@ class ApiService {
         .toList();
   }
 
-  Future<List<Post>> posts({int? beforeId, int? userId}) async {
+  Future<List<Post>> posts({int? beforeId, int? userId, int limit = 30}) async {
     final res = await _dio.get('/posts', queryParameters: {
       if (beforeId != null) 'before_id': beforeId,
       if (userId != null) 'user_id': userId,
+      'limit': limit,
     });
     return (res.data as List)
         .map((e) => Post.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<Post> getPost(int postId) async {
+    final res = await _dio.get('/posts/$postId');
+    return Post.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<Post> createPost({required String imagePath, String caption = ''}) async {
+    final form = FormData.fromMap({
+      'caption': caption,
+      'image': await MultipartFile.fromFile(imagePath, filename: 'post.jpg'),
+    });
+    final res = await _dio.post('/posts', data: form);
+    return Post.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<({bool liked, int likeCount})> toggleLike(int postId) async {
+    final res = await _dio.post('/posts/$postId/like');
+    final data = res.data as Map<String, dynamic>;
+    return (liked: data['liked'] as bool, likeCount: data['like_count'] as int);
+  }
+
+  Future<List<Comment>> comments(int postId) async {
+    final res = await _dio.get('/posts/$postId/comments');
+    return (res.data as List)
+        .map((e) => Comment.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Comment> addComment(int postId, String content) async {
+    final res = await _dio.post('/posts/$postId/comments', data: {'content': content});
+    return Comment.fromJson(res.data as Map<String, dynamic>);
   }
 
   Future<List<StoryGroup>> stories() async {

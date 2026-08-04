@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../chat/room_list_screen.dart';
-import '../profile/profile_screen.dart';
+import 'chat/room_list_screen.dart';
+import 'explore/explore_screen.dart';
+import 'profile/profile_screen.dart';
 
-/// Authenticated shell — Chats + Profile tabs (Explore arrives in Phase 4).
+/// Authenticated shell — Chats | Explore | Profile.
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
@@ -16,6 +17,7 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _pages = <Widget>[
     RoomListScreen(),
+    ExploreScreen(),
     ProfileScreen(),
   ];
 
@@ -34,6 +36,11 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.chat_bubble_outline),
             selectedIcon: Icon(Icons.chat_bubble),
             label: 'Chats',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
+            label: 'Explore',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

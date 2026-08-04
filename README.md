@@ -10,9 +10,9 @@ Private team app for ~10–20 users: chat, calls, explore, stories, profiles.
 |------|--------|--------|
 | 1. Core chat | Done | Schema, JWT, WS resync, Flutter chat + local cache |
 | 2. Calls | Done | LiveKit token (membership-gated), call screen, chat entry points |
-| 3. Profiles | **In progress** | `/me`, avatar, public profile + posts grid, Flutter profile UI |
-| 4. Explore/Posts | API ready | Masonry feed, likes, comments |
-| 5. Stories | API ready | 24h expiry scheduler, strip + viewer |
+| 3. Profiles | Done | `/me`, avatar, public profile + posts grid, Flutter profile UI |
+| 4. Explore/Posts | **In progress** | Masonry feed, create post, likes, comments, pagination |
+| 5. Stories | API ready | 24h expiry scheduler, story strip + viewer |
 
 ## Quick start (backend)
 
@@ -59,6 +59,8 @@ Phase 1 screens: login → room list → chat with WebSocket reconnect, `last_id
 Phase 2: voice/video buttons in the chat app bar open `CallScreen`, which mints a LiveKit token via `POST /livekit/token` for `room_{chatRoomId}`. See `flutter_app/PLATFORM_PERMISSIONS.md` for camera/mic manifests after `flutter create .`.
 
 Phase 3: bottom nav **Profile** tab — avatar, display name, bio, own-posts grid, edit screen (gallery avatar upload). Tap a sender name in chat to open their public profile (`GET /users/{id}` returns profile + posts).
+
+Phase 4: **Explore** tab — Pinterest-style masonry grid sized from stored `width`/`height`, infinite scroll via `before_id`, create post, likes, and comments on post detail.
 
 ## Calls (LiveKit)
 
