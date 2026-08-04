@@ -9,8 +9,8 @@ Private team app for ~10–20 users: chat, calls, explore, stories, profiles.
 | Phase | Status | Scope |
 |------|--------|--------|
 | 1. Core chat | Done | Schema, JWT, WS resync, Flutter chat + local cache |
-| 2. Calls | **In progress** | LiveKit token (membership-gated), call screen, chat entry points |
-| 3. Profiles | Partial API | `/me`, avatar upload, profile screens |
+| 2. Calls | Done | LiveKit token (membership-gated), call screen, chat entry points |
+| 3. Profiles | **In progress** | `/me`, avatar, public profile + posts grid, Flutter profile UI |
 | 4. Explore/Posts | API ready | Masonry feed, likes, comments |
 | 5. Stories | API ready | 24h expiry scheduler, strip + viewer |
 
@@ -55,6 +55,23 @@ flutter run --dart-define=API_BASE=http://127.0.0.1:8000
 ```
 
 Phase 1 screens: login → room list → chat with WebSocket reconnect, `last_id` persistence (sqflite), and outbound queue while offline.
+
+Phase 2: voice/video buttons in the chat app bar open `CallScreen`, which mints a LiveKit token via `POST /livekit/token` for `room_{chatRoomId}`. See `flutter_app/PLATFORM_PERMISSIONS.md` for camera/mic manifests after `flutter create .`.
+
+Phase 3: bottom nav **Profile** tab — avatar, display name, bio, own-posts grid, edit screen (gallery avatar upload). Tap a sender name in chat to open their public profile (`GET /users/{id}` returns profile + posts).
+
+## Calls (LiveKit)
+
+```bash
+# From deploy/ — start LiveKit (host networking for TURN/TLS)
+docker compose up livekit
+```
+
+1. Set `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` / `LIVEKIT_WS_URL` in `backend/.env` to match `deploy/livekit.yaml`.
+2. Point `turn.yourhost.ir` DNS + certbot certs; uncomment `cert_file` / `key_file` in `livekit.yaml`.
+3. Prefer TURN TLS on 443 — plain UDP fails on many restricted networks (DESIGN §6).
+
+Room names: `room_{id}` (chat-tied) or `dm_{min}_{max}` (1:1). Token minting checks membership before issuing.
 
 ## Chat reliability (the important bit)
 

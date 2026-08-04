@@ -16,13 +16,6 @@ class RoomListScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Chats'),
-        actions: [
-          IconButton(
-            tooltip: 'Sign out',
-            onPressed: () => ref.read(authProvider.notifier).logout(),
-            icon: const Icon(Icons.logout),
-          ),
-        ],
       ),
       body: rooms.when(
         data: (list) {

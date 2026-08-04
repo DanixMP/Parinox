@@ -15,6 +15,11 @@
 #   <string>Camera is used for video calls</string>
 #   <key>NSMicrophoneUsageDescription</key>
 #   <string>Microphone is used for voice and video calls</string>
+#   <key>NSPhotoLibraryUsageDescription</key>
+#   <string>Photo library is used to set your profile avatar</string>
+#
+# Android 13+ also needs:
+#   <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 #
 # Also ensure backend LIVEKIT_WS_URL points at the reachable LiveKit/TURN endpoint
 # (wss://turn.yourhost.ir after TLS is wired).

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/auth_provider.dart';
 import 'screens/auth/login_screen.dart';
-import 'screens/chat/room_list_screen.dart';
+import 'screens/home_shell.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,11 +26,10 @@ class TeamApp extends ConsumerWidget {
           brightness: Brightness.light,
         ),
         useMaterial3: true,
-        fontFamily: 'Roboto', // replaced by platform default; swap for brand font later
       ),
       home: auth.when(
         data: (state) =>
-            state.isAuthenticated ? const RoomListScreen() : const LoginScreen(),
+            state.isAuthenticated ? const HomeShell() : const LoginScreen(),
         loading: () => const Scaffold(
           body: Center(child: CircularProgressIndicator()),
         ),

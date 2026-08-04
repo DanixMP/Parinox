@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/message.dart';
 import '../models/post.dart';
+import '../models/profile.dart';
 import '../models/room.dart';
 import '../models/story.dart';
 import '../models/user.dart';
@@ -27,6 +28,7 @@ class ApiService {
   String? _token;
 
   String? get token => _token;
+  String get baseUrl => _dio.options.baseUrl;
 
   Future<void> loadToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -70,6 +72,37 @@ class ApiService {
     return User.fromJson(res.data as Map<String, dynamic>);
   }
 
+  Future<Profile> myProfile() async {
+    final res = await _dio.get('/me/profile');
+    return Profile.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<Profile> userProfile(int userId) async {
+    final res = await _dio.get('/users/$userId');
+    return Profile.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<User> updateMe({String? displayName, String? bio}) async {
+    final res = await _dio.patch('/me', data: {
+      if (displayName != null) 'display_name': displayName,
+      if (bio != null) 'bio': bio,
+    });
+    return User.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<User> uploadAvatar(String filePath) async {
+    final form = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(filePath, filename: 'avatar.jpg'),
+    });
+    final res = await _dio.post('/me/avatar', data: form);
+    return User.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<User> clearAvatar() async {
+    final res = await _dio.delete('/me/avatar');
+    return User.fromJson(res.data as Map<String, dynamic>);
+  }
+
   Future<List<Room>> rooms() async {
     final res = await _dio.get('/rooms');
     return (res.data as List)
@@ -106,9 +139,10 @@ class ApiService {
         .toList();
   }
 
-  Future<List<Post>> posts({int? beforeId}) async {
+  Future<List<Post>> posts({int? beforeId, int? userId}) async {
     final res = await _dio.get('/posts', queryParameters: {
       if (beforeId != null) 'before_id': beforeId,
+      if (userId != null) 'user_id': userId,
     });
     return (res.data as List)
         .map((e) => Post.fromJson(e as Map<String, dynamic>))

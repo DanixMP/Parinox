@@ -29,6 +29,31 @@ class UserUpdate(BaseModel):
     bio: str | None = None
 
 
+class PostSummary(BaseModel):
+    id: int
+    user_id: int
+    caption: str = ""
+    image_path: str
+    width: int
+    height: int
+    created_at: str
+    like_count: int = 0
+    comment_count: int = 0
+
+
+class ProfileOut(BaseModel):
+    """Public profile + own-posts grid (DESIGN §4 GET /users/{id})."""
+
+    id: int
+    username: str
+    display_name: str
+    bio: str = ""
+    avatar_path: str | None = None
+    created_at: str | None = None
+    posts: list[PostSummary] = Field(default_factory=list)
+    post_count: int = 0
+
+
 class AdminCreateUser(BaseModel):
     username: str = Field(min_length=2, max_length=64)
     password: str = Field(min_length=6, max_length=128)

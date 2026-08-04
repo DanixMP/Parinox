@@ -33,28 +33,29 @@ def _post_dict(row: dict, liked: bool = False, like_count: int = 0, comment_coun
 def list_posts(
     user: CurrentUser,
     before_id: int | None = Query(default=None),
+    user_id: int | None = Query(default=None),
     limit: int = Query(default=30, ge=1, le=100),
 ) -> list[dict]:
     with get_db() as conn:
+        clauses = []
+        params: list = []
+        if user_id is not None:
+            clauses.append("p.user_id = ?")
+            params.append(user_id)
         if before_id is not None:
-            rows = conn.execute(
-                """
-                SELECT p.*, u.display_name, u.username
-                FROM posts p JOIN users u ON u.id = p.user_id
-                WHERE p.id < ?
-                ORDER BY p.id DESC LIMIT ?
-                """,
-                (before_id, limit),
-            ).fetchall()
-        else:
-            rows = conn.execute(
-                """
-                SELECT p.*, u.display_name, u.username
-                FROM posts p JOIN users u ON u.id = p.user_id
-                ORDER BY p.id DESC LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
+            clauses.append("p.id < ?")
+            params.append(before_id)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        params.append(limit)
+        rows = conn.execute(
+            f"""
+            SELECT p.*, u.display_name, u.username
+            FROM posts p JOIN users u ON u.id = p.user_id
+            {where}
+            ORDER BY p.id DESC LIMIT ?
+            """,
+            params,
+        ).fetchall()
 
         result = []
         for r in rows:

@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/livekit_service.dart';
 import '../../services/ws_service.dart';
 import '../call/call_screen.dart';
+import '../profile/profile_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({
@@ -211,9 +212,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!mine && m.senderDisplayName != null)
-                          Text(
-                            m.senderDisplayName!,
-                            style: Theme.of(context).textTheme.labelSmall,
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ProfileScreen(userId: m.senderId),
+                                ),
+                              );
+                            },
+                            child: Text(
+                              m.senderDisplayName!,
+                              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).colorScheme.primary,
+                                  ),
+                            ),
                           ),
                         Text(m.content ?? ''),
                         if (m.pending)
