@@ -1,0 +1,59 @@
+# Example nginx reverse proxy — replace yourhost.ir and cert paths.
+
+upstream parinox_api {
+    server 127.0.0.1:8000;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name yourhost.ir;
+
+    ssl_certificate     /etc/letsencrypt/live/yourhost.ir/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/yourhost.ir/privkey.pem;
+
+    client_max_body_size 10m;
+
+    location /ws/ {
+        proxy_pass http://parinox_api;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_read_timeout 3600s;
+    }
+
+    location /api/ {
+        # Strip /api prefix so backend routes match DESIGN.md paths
+        proxy_pass http://parinox_api/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /media/ {
+        alias /srv/app/backend/media/;
+        expires 7d;
+        add_header Cache-Control "public";
+    }
+
+    location /health {
+        proxy_pass http://parinox_api;
+    }
+}
+
+# LiveKit / TURN (Phase 2)
+server {
+    listen 443 ssl http2;
+    server_name turn.yourhost.ir;
+
+    ssl_certificate     /etc/letsencrypt/live/turn.yourhost.ir/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/turn.yourhost.ir/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:7880;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+    }
+}

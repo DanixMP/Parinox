@@ -1,0 +1,11 @@
+# Minimal LiveKit config — enable TURN/TLS in production (see DESIGN.md §6).
+port: 7880
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 50100
+  use_external_ip: true
+keys:
+  devkey: secret
+logging:
+  level: info
