@@ -1,0 +1,24 @@
+# LiveKit config sketch — enable TURN over TLS on 443 for restricted networks.
+# See DESIGN.md §6.
+
+port: 7880
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+
+keys:
+  devkey: secret
+
+# Built-in TURN — force TLS on 443 so it looks like normal HTTPS
+turn:
+  enabled: true
+  domain: turn.yourhost.ir
+  tls_port: 443
+  # udp_port: 3478  # optional; prefer TLS for restricted networks
+  # cert_file: /certs/fullchain.pem
+  # key_file: /certs/privkey.pem
+
+logging:
+  level: info
