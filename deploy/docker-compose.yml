@@ -1,0 +1,29 @@
+services:
+  api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env
+    volumes:
+      - ../backend/media:/app/media
+      - app-db:/app/data
+    environment:
+      DATABASE_PATH: /app/data/team_app.db
+      MEDIA_ROOT: /app/media
+    ports:
+      - "8000:8000"
+
+  livekit:
+    image: livekit/livekit-server:latest
+    restart: unless-stopped
+    network_mode: host
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+      # Mount the same certbot certs nginx uses for TURN TLS on 443
+      # - /etc/letsencrypt/live/turn.yourhost.ir:/certs:ro
+
+volumes:
+  app-db:

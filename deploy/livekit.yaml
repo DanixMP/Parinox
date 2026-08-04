@@ -1,0 +1,28 @@
+# LiveKit config — DESIGN.md §6
+# Force TURN over TLS on 443 so media traverses restrictive/throttled networks.
+
+port: 7880
+rtc:
+  tcp_port: 7881
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: true
+
+# Must match LIVEKIT_API_KEY / LIVEKIT_API_SECRET in backend/.env
+keys:
+  devkey: secret
+
+turn:
+  enabled: true
+  domain: turn.yourhost.ir
+  tls_port: 443
+  # Prefer TLS; plain UDP is unreliable for some team networks.
+  # udp_port: 3478
+  #
+  # Uncomment after certbot issues certs for turn.yourhost.ir
+  # (can reuse the same certbot cert nginx uses):
+  # cert_file: /etc/letsencrypt/live/turn.yourhost.ir/fullchain.pem
+  # key_file: /etc/letsencrypt/live/turn.yourhost.ir/privkey.pem
+
+logging:
+  level: info
