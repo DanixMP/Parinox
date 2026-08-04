@@ -8,8 +8,8 @@ Private team app for ~10–20 users: chat, calls, explore, stories, profiles.
 
 | Phase | Status | Scope |
 |------|--------|--------|
-| 1. Core chat | **In progress** | Schema, JWT, WS resync, Flutter chat + local cache |
-| 2. Calls | Scaffolded | LiveKit docker-compose, token endpoint, call screen |
+| 1. Core chat | Done | Schema, JWT, WS resync, Flutter chat + local cache |
+| 2. Calls | **In progress** | LiveKit token (membership-gated), call screen, chat entry points |
 | 3. Profiles | Partial API | `/me`, avatar upload, profile screens |
 | 4. Explore/Posts | API ready | Masonry feed, likes, comments |
 | 5. Stories | API ready | 24h expiry scheduler, strip + viewer |

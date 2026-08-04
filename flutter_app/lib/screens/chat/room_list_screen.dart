@@ -51,7 +51,11 @@ class RoomListScreen extends ConsumerWidget {
                   onTap: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => ChatScreen(roomId: room.id, title: room.name),
+                        builder: (_) => ChatScreen(
+                          roomId: room.id,
+                          title: room.name,
+                          isDm: room.isDm,
+                        ),
                       ),
                     );
                   },

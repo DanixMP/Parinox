@@ -3,13 +3,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../models/message.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/livekit_service.dart';
 import '../../services/ws_service.dart';
+import '../call/call_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
-  const ChatScreen({super.key, required this.roomId, required this.title});
+  const ChatScreen({
+    super.key,
+    required this.roomId,
+    required this.title,
+    this.isDm = false,
+  });
 
   final int roomId;
   final String title;
+  final bool isDm;
 
   @override
   ConsumerState<ChatScreen> createState() => _ChatScreenState();
@@ -127,6 +135,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToEnd();
   }
 
+  void _startCall({required bool video}) {
+    final livekitRoom = LivekitService.chatCallRoom(widget.roomId);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CallScreen(
+          livekitRoom: livekitRoom,
+          title: video ? 'Video · ${widget.title}' : 'Voice · ${widget.title}',
+          video: video,
+        ),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _ws?.dispose();
@@ -149,6 +170,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ],
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Voice call',
+            onPressed: () => _startCall(video: false),
+            icon: const Icon(Icons.call),
+          ),
+          IconButton(
+            tooltip: 'Video call',
+            onPressed: () => _startCall(video: true),
+            icon: const Icon(Icons.videocam),
+          ),
+        ],
       ),
       body: Column(
         children: [
