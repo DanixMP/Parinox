@@ -23,6 +23,15 @@ class StoryItem {
         expiresAt: json['expires_at'] as String,
         viewed: (json['viewed'] as bool?) ?? false,
       );
+
+  StoryItem copyWith({bool? viewed}) => StoryItem(
+        id: id,
+        mediaPath: mediaPath,
+        isVideo: isVideo,
+        createdAt: createdAt,
+        expiresAt: expiresAt,
+        viewed: viewed ?? this.viewed,
+      );
 }
 
 class StoryGroup {
@@ -51,5 +60,18 @@ class StoryGroup {
         stories: (json['stories'] as List<dynamic>? ?? [])
             .map((e) => StoryItem.fromJson(e as Map<String, dynamic>))
             .toList(),
+      );
+
+  StoryGroup copyWith({
+    bool? hasUnseen,
+    List<StoryItem>? stories,
+  }) =>
+      StoryGroup(
+        userId: userId,
+        username: username,
+        displayName: displayName,
+        avatarPath: avatarPath,
+        hasUnseen: hasUnseen ?? this.hasUnseen,
+        stories: stories ?? this.stories,
       );
 }

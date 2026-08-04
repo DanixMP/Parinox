@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from starlette.responses import Response
 
 from auth import CurrentUser
 from db import get_db
@@ -75,7 +76,43 @@ async def create_story(
         )
         sid = cur.lastrowid
         row = conn.execute("SELECT * FROM stories WHERE id = ?", (sid,)).fetchone()
-    return dict(row)
+    d = dict(row)
+    return {
+        "id": d["id"],
+        "user_id": d["user_id"],
+        "media_path": d["media_path"],
+        "is_video": bool(d["is_video"]),
+        "created_at": d["created_at"],
+        "expires_at": d["expires_at"],
+        "viewed": False,
+        "display_name": user["display_name"],
+        "username": user["username"],
+    }
+
+
+@router.delete("/stories/{story_id}", status_code=status.HTTP_204_NO_CONTENT, response_class=Response)
+def delete_own_story(story_id: int, user: CurrentUser) -> Response:
+    """Allow a user to remove their own active story early."""
+    from pathlib import Path
+
+    from config import get_settings
+
+    settings = get_settings()
+    with get_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM stories WHERE id = ? AND user_id = ?",
+            (story_id, user["id"]),
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Story not found")
+        conn.execute("DELETE FROM stories WHERE id = ?", (story_id,))
+        path = Path(settings.media_root) / row["media_path"]
+        try:
+            if path.is_file():
+                path.unlink()
+        except OSError:
+            pass
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/stories/{story_id}/view")

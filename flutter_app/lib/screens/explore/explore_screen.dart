@@ -6,13 +6,14 @@ import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import '../../models/post.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/explore_provider.dart';
+import '../../providers/stories_provider.dart';
 import '../../services/media_url.dart';
 import '../profile/profile_screen.dart';
+import '../stories/stories_strip.dart';
 import 'create_post_screen.dart';
 import 'post_detail_screen.dart';
 
-/// Pinterest-style masonry explore feed (DESIGN §7).
-/// Stories strip is added in Phase 5 on top of this feed.
+/// Pinterest-style masonry explore feed + stories strip (DESIGN §7).
 class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
@@ -84,12 +85,18 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                   ),
                 )
               : RefreshIndicator(
-                  onRefresh: () => ref.read(exploreFeedProvider.notifier).refresh(),
+                  onRefresh: () async {
+                    await Future.wait([
+                      ref.read(exploreFeedProvider.notifier).refresh(),
+                      ref.read(storiesFeedProvider.notifier).refresh(),
+                    ]);
+                  },
                   child: feed.posts.isEmpty
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
                           children: const [
-                            SizedBox(height: 120),
+                            StoriesStrip(),
+                            SizedBox(height: 80),
                             Center(child: Text('No posts yet — be the first')),
                           ],
                         )
@@ -97,6 +104,7 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen> {
                           controller: _scroll,
                           physics: const AlwaysScrollableScrollPhysics(),
                           slivers: [
+                            const SliverToBoxAdapter(child: StoriesStrip()),
                             SliverPadding(
                               padding: const EdgeInsets.all(6),
                               sliver: SliverMasonryGrid.count(

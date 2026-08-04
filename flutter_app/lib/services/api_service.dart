@@ -190,6 +190,23 @@ class ApiService {
         .toList();
   }
 
+  Future<StoryItem> createStory(String filePath, {bool isVideo = false}) async {
+    final name = isVideo ? 'story.mp4' : 'story.jpg';
+    final form = FormData.fromMap({
+      'media': await MultipartFile.fromFile(filePath, filename: name),
+    });
+    final res = await _dio.post('/stories', data: form);
+    return StoryItem.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  Future<void> viewStory(int storyId) async {
+    await _dio.post('/stories/$storyId/view');
+  }
+
+  Future<void> deleteStory(int storyId) async {
+    await _dio.delete('/stories/$storyId');
+  }
+
   Future<Map<String, dynamic>> livekitToken(String room) async {
     final res = await _dio.post('/livekit/token', data: {'room': room});
     return res.data as Map<String, dynamic>;
