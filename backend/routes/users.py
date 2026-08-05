@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 
+from presence import presence
 from auth import CurrentUser
 from db import get_db, row_to_dict
 from models import PostSummary, ProfileOut, UserPublic, UserUpdate
@@ -12,14 +13,20 @@ from routes.upload import save_image
 router = APIRouter(tags=["users"])
 
 
-def _public(user: dict) -> UserPublic:
+def _public(user: dict, *, include_recovery: bool = False) -> UserPublic:
+    uid = user["id"]
     return UserPublic(
-        id=user["id"],
+        id=uid,
         username=user["username"],
         display_name=user["display_name"],
         bio=user.get("bio") or "",
         avatar_path=user.get("avatar_path"),
+        banner_path=user.get("banner_path"),
+        email=user.get("email") if include_recovery else None,
+        phone=user.get("phone") if include_recovery else None,
         created_at=user.get("created_at"),
+        is_online=presence.is_online(uid),
+        last_seen_at=None if presence.is_online(uid) else user.get("last_seen_at"),
     )
 
 
@@ -40,14 +47,18 @@ def _profile_with_posts(conn, user_row: dict, *, post_limit: int = 60) -> Profil
         "SELECT COUNT(*) AS c FROM posts WHERE user_id = ?",
         (user_row["id"],),
     ).fetchone()["c"]
+    uid = user_row["id"]
     return ProfileOut(
-        id=user_row["id"],
+        id=uid,
         username=user_row["username"],
         display_name=user_row["display_name"],
         bio=user_row.get("bio") or "",
         avatar_path=user_row.get("avatar_path"),
+        banner_path=user_row.get("banner_path"),
         created_at=user_row.get("created_at"),
         post_count=total,
+        is_online=presence.is_online(uid),
+        last_seen_at=None if presence.is_online(uid) else user_row.get("last_seen_at"),
         posts=[
             PostSummary(
                 id=p["id"],
@@ -67,7 +78,7 @@ def _profile_with_posts(conn, user_row: dict, *, post_limit: int = 60) -> Profil
 
 @router.get("/me", response_model=UserPublic)
 def get_me(user: CurrentUser) -> UserPublic:
-    return _public(user)
+    return _public(user, include_recovery=True)
 
 
 @router.get("/me/profile", response_model=ProfileOut)
@@ -93,14 +104,14 @@ def patch_me_json(user: CurrentUser, body: UserUpdate) -> UserPublic:
         updates.append("bio = ?")
         params.append(body.bio.strip())
     if not updates:
-        return _public(user)
+        return _public(user, include_recovery=True)
     params.append(user["id"])
     with get_db() as conn:
         conn.execute(f"UPDATE users SET {', '.join(updates)} WHERE id = ?", params)
         row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
     updated = row_to_dict(row)
     assert updated is not None
-    return _public(updated)
+    return _public(updated, include_recovery=True)
 
 
 @router.post("/me/avatar", response_model=UserPublic)
@@ -112,7 +123,7 @@ async def upload_avatar(user: CurrentUser, avatar: UploadFile = File(...)) -> Us
         row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
     updated = row_to_dict(row)
     assert updated is not None
-    return _public(updated)
+    return _public(updated, include_recovery=True)
 
 
 @router.delete("/me/avatar", response_model=UserPublic)
@@ -122,7 +133,28 @@ def clear_avatar(user: CurrentUser) -> UserPublic:
         row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
     updated = row_to_dict(row)
     assert updated is not None
-    return _public(updated)
+    return _public(updated, include_recovery=True)
+
+
+@router.post("/me/banner", response_model=UserPublic)
+async def upload_banner(user: CurrentUser, banner: UploadFile = File(...)) -> UserPublic:
+    rel, _w, _h = await save_image(banner, "banners")
+    with get_db() as conn:
+        conn.execute("UPDATE users SET banner_path = ? WHERE id = ?", (rel, user["id"]))
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+    updated = row_to_dict(row)
+    assert updated is not None
+    return _public(updated, include_recovery=True)
+
+
+@router.delete("/me/banner", response_model=UserPublic)
+def clear_banner(user: CurrentUser) -> UserPublic:
+    with get_db() as conn:
+        conn.execute("UPDATE users SET banner_path = NULL WHERE id = ?", (user["id"],))
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (user["id"],)).fetchone()
+    updated = row_to_dict(row)
+    assert updated is not None
+    return _public(updated, include_recovery=True)
 
 
 @router.get("/users/{user_id}", response_model=ProfileOut)

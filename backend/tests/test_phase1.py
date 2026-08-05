@@ -52,6 +52,61 @@ def test_health(client: TestClient):
     assert client.get("/health").json()["status"] == "ok"
 
 
+def test_signup_requires_recovery_and_saves(client: TestClient):
+    # Missing email and phone
+    bad = client.post(
+        "/signup",
+        json={"username": "newbie", "password": "password123", "display_name": "Newbie"},
+    )
+    assert bad.status_code == 422
+
+    ok = client.post(
+        "/signup",
+        json={
+            "username": "newbie",
+            "password": "password123",
+            "display_name": "Newbie",
+            "email": "newbie@example.com",
+        },
+    )
+    assert ok.status_code == 201, ok.text
+    token = ok.json()["access_token"]
+    me = client.get("/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.status_code == 200
+    body = me.json()
+    assert body["username"] == "newbie"
+    assert body["email"] == "newbie@example.com"
+    assert body["phone"] is None
+
+    phone_user = client.post(
+        "/signup",
+        json={
+            "username": "phoneme",
+            "password": "password123",
+            "display_name": "Phone Me",
+            "phone": "+989121234567",
+        },
+    )
+    assert phone_user.status_code == 201
+    token2 = phone_user.json()["access_token"]
+    me2 = client.get("/me", headers={"Authorization": f"Bearer {token2}"}).json()
+    assert me2["phone"] == "+989121234567"
+    assert me2["email"] is None
+
+    # Duplicate email
+    dup = client.post(
+        "/signup",
+        json={
+            "username": "other",
+            "password": "password123",
+            "display_name": "Other",
+            "email": "newbie@example.com",
+        },
+    )
+    assert dup.status_code == 409
+
+
+
 def test_login_and_me(client: TestClient):
     _create_user(client, "alice")
     token = _login(client, "alice")
@@ -155,3 +210,73 @@ def test_dm_reuse(client: TestClient):
         headers=headers,
     ).json()
     assert r1["id"] == r2["id"]
+    assert r1["kind"] == "dm"
+
+
+def test_channel_group_and_dm_kinds(client: TestClient):
+    a = _create_user(client, "alice6")
+    b = _create_user(client, "bob6")
+    c = _create_user(client, "carol6")
+    token = _login(client, "alice6")
+    headers = {"Authorization": f"Bearer {token}"}
+
+    channel = client.post(
+        "/rooms",
+        json={"name": "general", "kind": "channel", "description": "Team channel"},
+        headers=headers,
+    )
+    assert channel.status_code == 201
+    ch = channel.json()
+    assert ch["kind"] == "channel"
+    assert {m["id"] for m in ch["members"]} >= {a["id"], b["id"], c["id"]}
+
+    group = client.post(
+        "/rooms",
+        json={"name": "Project X", "kind": "group", "member_ids": [b["id"]]},
+        headers=headers,
+    )
+    assert group.status_code == 201
+    g = group.json()
+    assert g["kind"] == "group"
+    assert {m["id"] for m in g["members"]} == {a["id"], b["id"]}
+
+    dm = client.post("/dms", json={"user_id": b["id"]}, headers=headers)
+    assert dm.status_code == 201
+    assert dm.json()["kind"] == "dm"
+    dm2 = client.post("/dms", json={"user_id": b["id"]}, headers=headers)
+    assert dm2.json()["id"] == dm.json()["id"]
+
+    rooms = client.get("/rooms", headers=headers).json()
+    kinds = {r["id"]: r["kind"] for r in rooms}
+    assert kinds[ch["id"]] == "channel"
+    assert kinds[g["id"]] == "group"
+    assert kinds[dm.json()["id"]] == "dm"
+
+    filtered = client.get("/rooms?kind=channel", headers=headers).json()
+    assert all(r["kind"] == "channel" for r in filtered)
+    assert any(r["id"] == ch["id"] for r in filtered)
+
+    # Channels are invite-only — new users are not auto-joined
+    d = _create_user(client, "dave6")
+    token_d = _login(client, "dave6")
+    d_headers = {"Authorization": f"Bearer {token_d}"}
+    d_rooms = client.get("/rooms?kind=channel", headers=d_headers).json()
+    assert not any(r["id"] == ch["id"] for r in d_rooms)
+
+    invite = client.get(f"/rooms/{ch['id']}/invite", headers=headers)
+    assert invite.status_code == 200
+    token = invite.json()["invite_token"]
+    joined = client.post(f"/rooms/join/{token}", headers=d_headers)
+    assert joined.status_code == 200
+    assert joined.json()["id"] == ch["id"]
+    d_rooms2 = client.get("/rooms?kind=channel", headers=d_headers).json()
+    assert any(r["id"] == ch["id"] for r in d_rooms2)
+
+    # Add member to group
+    added = client.post(
+        f"/rooms/{g['id']}/members",
+        json={"user_ids": [c["id"]]},
+        headers=headers,
+    )
+    assert added.status_code == 200
+    assert {m["id"] for m in added.json()["members"]} == {a["id"], b["id"], c["id"]}
