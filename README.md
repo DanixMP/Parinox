@@ -1,4 +1,5 @@
 Imagine Just Pulling 25k Code and spend 8h to just review 💀
+I will change the Readme soon.. Just wait.
 # Team App (Parinox)
 
 Private team app for ~10–20 users: chat, calls, explore, stories, profiles.
